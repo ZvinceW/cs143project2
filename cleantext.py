@@ -119,9 +119,31 @@ def sanitize(text):
     # YOUR CODE GOES BELOW:
 
     # 1. replace newlines and tabs with single space
-    text = re.sub("[\n\t]", " ", text)
+    text = re.sub(r"[\n\t]", " ", text)
     # 2. remove urls 
-    text = re.sub()
+    text = re.sub(r"][\(]?http\S+[\)]?|][\(]\S+[\)]", "", text)
+    text = re.sub(r"\]", "", text)
+    # 5. split on space (text should become an array of shorter strings)
+    text = text.split(" ")
+    nospace_text = []
+    for word in text:
+        if word != "":
+            nospace_text.append(word)
+    text = nospace_text
+    # 6&7. separate external punctuations + remove punctuation
+    good_punc = {".", "!", "?", ",", ";", ":"}
+    for word in text:
+        last_char = word[len(word) - 1]
+        if last_char in good_punc:
+            word[len(word) - 1] = " "
+            word += last_char
+        else:
+            word = word[:len(word) - 1]
+
+    # 8. convert all to lowercase
+    text = [word.lower() for word in text]
+
+
 
     return [parsed_text, unigrams, bigrams, trigrams]
 
