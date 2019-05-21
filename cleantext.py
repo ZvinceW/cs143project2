@@ -194,6 +194,14 @@ def sanitize(text):
 
 
 if __name__ == "__main__":
+    with open('sample.json') as json_file:
+        samples = list(json_file)
+
+        for i in range(0, 10):
+            entry = json.loads(samples[i])
+            text = entry['body']
+            sanitize(text)
+
     # This is the Python main function.
     # You should be able to run
     # python cleantext.py <filename>
