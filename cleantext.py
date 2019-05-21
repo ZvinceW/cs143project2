@@ -7,6 +7,7 @@ from __future__ import print_function
 import re
 import string
 import argparse
+import json
 
 
 __author__ = ""
@@ -109,7 +110,7 @@ _CONTRACTIONS = {
 
 def sanitize(text):
     """Do parse the text in variable "text" according to the spec, and return
-    a LIST containing FOUR strings 
+    a LIST containing FOUR strings
     1. The parsed text.
     2. The unigrams
     3. The bigrams
@@ -120,7 +121,7 @@ def sanitize(text):
 
     # 1. replace newlines and tabs with single space
     text = re.sub(r"[\n\t]", " ", text)
-    # 2. remove urls 
+    # 2. remove urls
     text = re.sub(r"][\(]?http\S+[\)]?|][\(]\S+[\)]", "", text)
     text = re.sub(r"\[", "", text)
     # 5. split on space (text should become an array of shorter strings)
@@ -147,11 +148,23 @@ def sanitize(text):
     text = [word.lower() for word in text]
     print(text)
 
+    # 9. generate unigrams
+
+    print(text)
+
 
     # return [parsed_text, unigrams, bigrams, trigrams]
 
 
 if __name__ == "__main__":
+    with open('sample.json') as json_file:
+        samples = list(json_file)
+
+        for i in range(0, 10):
+            entry = json.loads(samples[i])
+            text = entry['body']
+            sanitize(text)
+
     # This is the Python main function.
     # You should be able to run
     # python cleantext.py <filename>
