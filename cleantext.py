@@ -122,7 +122,7 @@ def sanitize(text):
     text = re.sub(r"[\n\t]", " ", text)
     # 2. remove urls 
     text = re.sub(r"][\(]?http\S+[\)]?|][\(]\S+[\)]", "", text)
-    text = re.sub(r"\]", "", text)
+    text = re.sub(r"\[", "", text)
     # 5. split on space (text should become an array of shorter strings)
     text = text.split(" ")
     nospace_text = []
@@ -130,22 +130,25 @@ def sanitize(text):
         if word != "":
             nospace_text.append(word)
     text = nospace_text
+    # print(text)
     # 6&7. separate external punctuations + remove punctuation
     good_punc = {".", "!", "?", ",", ";", ":"}
+    temp_text = []
     for word in text:
         last_char = word[len(word) - 1]
         if last_char in good_punc:
-            word[len(word) - 1] = " "
-            word += last_char
-        else:
             word = word[:len(word) - 1]
+            word += " " + last_char
+            print(word)
+        temp_text.append(word)
+    text = temp_text
 
     # 8. convert all to lowercase
     text = [word.lower() for word in text]
+    print(text)
 
 
-
-    return [parsed_text, unigrams, bigrams, trigrams]
+    # return [parsed_text, unigrams, bigrams, trigrams]
 
 
 if __name__ == "__main__":
@@ -158,7 +161,8 @@ if __name__ == "__main__":
 
     # YOUR CODE GOES BELOW.
 
-
+    # sanitize("I'm afraid I can't explain myself, sir. Because I am not myself, you see?")
+    sanitize("[Let](https://www.merriam-webster.com/dictionary/let) could mean loads of things, including \"to give opportunity to *or failure to prevent*.\" It's ambiguous at best. I mean, those women *let* CK jack off in front of them. You're right that the rules are different if you're wealthy, but I'm not sure I'm okay with that.")
 
     # We are "requiring" your write a main function so you can
     # debug your code. It will not be graded.
