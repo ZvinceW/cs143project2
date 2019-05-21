@@ -134,37 +134,65 @@ def sanitize(text):
     # print(text)
     # 6&7. separate external punctuations + remove punctuation
     good_punc = {".", "!", "?", ",", ";", ":"}
+    do_not_remove = {".", "!", "?", ",", ";", ":", "(", ")", "'", "\"", "-", "--"}
+
     temp_text = []
     for word in text:
         last_char = word[len(word) - 1]
         if last_char in good_punc:
             word = word[:len(word) - 1]
-            word += " " + last_char
-            print(word)
-        temp_text.append(word)
+            temp_text.append(word)
+            temp_text.append(last_char)
+            # print(word)
+        else:
+            temp_text.append(word)
     text = temp_text
+
+    temp = []
+    for word in text:
+        new_word = None;
+        for character in word:
+            if (character not in do_not_remove and not character.isalnum()):
+                new_word = word.replace(character, "")
+        if (new_word is not None):
+            temp.append(new_word)
+        else:
+            temp.append(word)
+
+    text = temp
 
     # 8. convert all to lowercase
     text = [word.lower() for word in text]
-    print(text)
 
-    # 9. generate unigrams
+    # 10.
+    parsed_text = ' '.join(text)
 
-    print(text)
+    # unigram
+    no_punctuation = []
+    for word in text:
+        if (word not in good_punc):
+            no_punctuation.append(word)
 
+    unigrams = ' '.join(no_punctuation)
 
-    # return [parsed_text, unigrams, bigrams, trigrams]
+    bigrams = []
+    for i in range(0, len(no_punctuation)-1):
+        bigram = '_'.join([no_punctuation[i], no_punctuation[i+1]])
+        bigrams.append(bigram)
+
+    bigrams = ' '.join(bigrams)
+
+    trigrams = []
+    for i in range(0, len(no_punctuation)-2):
+        trigram = '_'.join([no_punctuation[i], no_punctuation[i+1], no_punctuation[i+2]])
+        trigrams.append(trigram)
+
+    trigrams = ' '.join(trigrams)
+
+    return [parsed_text, unigrams, bigrams, trigrams]
 
 
 if __name__ == "__main__":
-    with open('sample.json') as json_file:
-        samples = list(json_file)
-
-        for i in range(0, 10):
-            entry = json.loads(samples[i])
-            text = entry['body']
-            sanitize(text)
-
     # This is the Python main function.
     # You should be able to run
     # python cleantext.py <filename>
@@ -174,8 +202,19 @@ if __name__ == "__main__":
 
     # YOUR CODE GOES BELOW.
 
-    # sanitize("I'm afraid I can't explain myself, sir. Because I am not myself, you see?")
-    sanitize("[Let](https://www.merriam-webster.com/dictionary/let) could mean loads of things, including \"to give opportunity to *or failure to prevent*.\" It's ambiguous at best. I mean, those women *let* CK jack off in front of them. You're right that the rules are different if you're wealthy, but I'm not sure I'm okay with that.")
+    with open('sample.json') as json_file:
+        samples = list(json_file)
+
+        for sample in samples:
+            entry = json.loads(sample)
+            text = entry['body']
+            print('ORIGINAL')
+            print(text)
+
+            print('')
+            print('CLEAN')
+            print(sanitize(text))
+            print('')
 
     # We are "requiring" your write a main function so you can
     # debug your code. It will not be graded.
