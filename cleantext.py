@@ -124,6 +124,7 @@ def sanitize(text):
     # 2. remove urls
     text = re.sub(r"][\(]?http\S+[\)]?|][\(]\S+[\)]", "", text)
     text = re.sub(r"\[", "", text)
+    text = re.sub(r"\S+\.\S+\.\S+", "", text)
     # 5. split on space (text should become an array of shorter strings)
     text = text.split(" ")
     nospace_text = []
@@ -150,7 +151,7 @@ def sanitize(text):
 
     temp = []
     for word in text:
-        new_word = None;
+        new_word = None
         for character in word:
             if (character not in do_not_remove and not character.isalnum()):
                 new_word = word.replace(character, "")
