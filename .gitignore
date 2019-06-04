@@ -1,0 +1,5 @@
+./commentsParquet/*
+./labeledParquet/*
+./submissionParquet/*
+./t9_final.parquet/*
+./*.bz2
