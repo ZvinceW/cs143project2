@@ -10,6 +10,18 @@ import string
 import argparse
 import json
 
+states = ["Alabama", "Alaska", "Arizona", "Arkansas", "California", "Colorado", "Connecticut",
+          "Delaware", "District of Columbia", "Florida", "Georgia", "Hawaii", "Idaho", "Illinois",
+          "Indiana", "Iowa", "Kansas", "Kentucky", "Louisiana", "Maine", "Maryland", "Massachusetts",
+          "Michigan", "Minnesota", "Mississippi", "Missouri", "Montana", "Nebraska", "Nevada",
+          "New Hampshire", "New Jersey", "New Mexico", "New York", "North Carolina", "North Dakota",
+          "Ohio", "Oklahoma", "Oregon", "Pennsylvania", "Rhode Island", "South Carolina", "South Dakota",
+          "Tennessee", "Texas", "Utah", "Vermont", "Virginia", "Washington", "West Virginia", "Wisconsin",
+          "Wyoming"]
+
+def is_state(text):
+    return text in states
+
 def sanitize(text):
     """Do parse the text in variable "text" according to the spec, and return
     a LIST containing FOUR strings
@@ -102,17 +114,18 @@ def main(context):
     """Main function takes a Spark SQL context."""
     # TASK 1
 
-    # Run if parquets aren't available
+    # Run if parquets aren't available, this creates the data frames based of the data inputs
     # labeled_df = spark.read.option("header", "true").csv("labeled_data.csv")
     # labeled_df.write.parquet("labeledParquet")
 
     # submission_df = spark.read.option('compression', 'gzip').json("submissions.json.bz2")
     # comments_df = spark.read.option('compression', 'gzip').json("comments-minimal.json.bz2")
-        
+
     # submission_df.write.parquet("submissionParquet")
     # comments_df.write.parquet("commentsParquet")
 
     # Run if parquets are available
+    # This imports data from parquets instead of the actual file so it's faster
     labeled_df = sqlContext.read.parquet('./labeledParquet/')
     comments_df = sqlContext.read.parquet('./commentsParquet/')
     submission_df = sqlContext.read.parquet('./submissionParquet/')
@@ -121,11 +134,14 @@ def main(context):
     complete_df = labeled_df.join(comments_df, labeled_df.Input_id == comments_df.id).select("Input_id","labeldem","labelgop","labeldjt","body")
 
     # TASK 4
+    # Creates Spark UDF that will run sanitize on every comment
     sanitize_udf = udf(lambda comment: sanitize(comment), ArrayType(StringType()))
 
+    # Creates a new column grams that contains the output of sanitize
     complete_df = complete_df.withColumn("grams", sanitize_udf(complete_df["body"]))
 
     # TASK 5
+    # Flattens the grams column so that it's just a list of strings instead of list of lists
     combine_udf = udf(lambda grams: combine(grams), ArrayType(StringType()))
 
     complete_df = complete_df.withColumn("flat_grams", combine_udf(complete_df["grams"]))
@@ -189,7 +205,7 @@ def main(context):
     posModel.save("project2/pos.model")
     negModel.save("project2/neg.model")
 
-    # TASK 8 
+    # TASK 8
     cut_link_udf = udf(lambda link: link[3:], StringType())
     comments_df = comments_df.withColumn("cut_link_id", cut_link_udf(comments_df["link_id"]))
     t8_df = comments_df.join(submission_df, comments_df.cut_link_id == submission_df.id).select(comments_df.id, comments_df.created_utc, submission_df.title, comments_df.author_flair_text.alias("state"), comments_df.body)
@@ -221,6 +237,56 @@ def main(context):
     # this takes two hours dont accidentally run
     # t9_pos_neg_df.write.parquet("t9_final.parquet")
 
+    # TASK 10
+
+    t9_pos_neg_df.createOrReplaceTempView("temp_view")
+
+    percentage_df = sqlContext.sql("""
+        SELECT comment_id,
+        AVG(pos),
+        AVG(neg)
+        FROM temp_view
+        GROUP BY comment_id""")
+
+    timeseries_df = sqlContext.sql("""
+        SELECT FROM_UNIXTIME(created_utc, '%Y%M%D') AS date,
+        AVG(pos) AS positive,
+        AVG(neg) AS negative
+        FROM temp_view
+        GROUP BY date""")
+
+    sqlContext.registerFunction("state_udf", is_state, BooleanType())
+
+    state_percentage_df = sqlContext.sql("""
+        SELECT author_flair_text AS state,
+        AVG(pos) AS positvite,
+        AVG(neg) AS negative
+        FROM temp_view
+        WHERE(is_state_udf(author_flair_text))
+        GROUP BY state")""")
+
+    comment_score_df = sqlContext.sql("""
+        SELECT comments_score as comment_score,
+        AVG(pos_label) AS Positive,
+        AVG(neg_label) AS Negative
+        FROM predicted
+        GROUP BY comments_score
+    """)
+
+    submission_score_df = sqlContext.sql("""
+        SELECT submission_score,
+        AVG(pos_label) AS Positive,
+        AVG(neg_label) AS Negative
+        FROM predicted
+        GROUP BY submission_score
+    """)
+
+    percentage_df.orderBy("AVG(pos)", ascending=False).limit(10).repartition(1).write.format("com.databricks.spark.csv").option("header","true").save("top_10_pos.csv")
+    percentage_df.orderBy("AVG(neg)", ascending=False).limit(10).repartition(1).write.format("com.databricks.spark.csv").option("header","true").save("top_10_neg.csv")
+    timeseries_df.repartition(1).write.format("com.databricks.spark.csv").option("header","true").save("time_data.csv")
+    state_percentage_df.repartition(1).write.format("com.databricks.spark.csv").option("header","true").save("state_data.csv")
+    percent_comment_score.repartition(1).write.format("com.databricks.spark.csv").option("header","true").save("comment_score.csv")
+    percent_submission_score.repartition(1).write.format("com.databricks.spark.csv").option("header","true").save("submission_score.csv")
 
 
 
